@@ -1,0 +1,205 @@
+$(document).ready(function() {
+  $("#action_menu_btn").click(function() {
+    $(".action_menu").toggle();
+  });
+});
+
+let name = prompt("What\ts your name?");
+while (!name) {
+  name = prompt("What\ts your name?");
+}
+
+let socket_url = "ws://localhost:3000";
+let socket = new WebSocket(socket_url);
+
+let nodes = [];
+let contacts = [];
+let users = [];
+
+socket.onopen = () => {
+  if (name) socket.send(JSON.stringify({ type: "conn", name }));
+};
+
+socket.onmessage = event => {
+  let data = {};
+  try {
+    data = JSON.parse(event.data);
+  } catch (e) {
+    return;
+  }
+
+  console.log("Recieved:", data);
+
+  if (data.type == "allmsgs") {
+    // when user gets connected
+    let msg_body = document.getElementsByClassName("msg_card_body")[0];
+    let contacts_body = document.getElementsByClassName("contacts_body")[0];
+
+    let new_joined = document.createElement("span");
+    new_joined.innerHTML = `<div class="d-flex justify-content-start mb-4">
+            <div class="text-muted join_room">
+              You joined the chat
+            </div>
+          </div>`;
+
+    msg_body.appendChild(new_joined);
+
+    // all connected users
+    if (data.users.length) {
+      for (let i = 0; i < data.users.length; i++) {
+        let li = document.createElement("li");
+        li.className = "activec";
+        li.id = data.users[i].name + "__";
+        li.innerHTML = `<div class="d-flex bd-highlight">
+          <div class="img_cont">
+            <img
+              src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg"
+              class="rounded-circle user_img"
+            />
+            <span class="online_icon"></span>
+          </div>
+          <div class="user_info">
+            <span>${data.users[i].name}</span>
+            <p>${data.users[i].name} is online</p>
+          </div> 
+        </div>`;
+        contacts.push(li);
+      }
+      let contacts_section = document.getElementsByClassName("contacts")[0];
+      for (let i = 0; i < contacts.length; i++) {
+        contacts_section.appendChild(contacts[i]);
+      }
+    }
+
+    if (!data.messages.length) {
+      let msg_body = document.getElementsByClassName("msg_card_body")[0];
+      let prev_msg = document.createElement("span");
+      prev_msg.innerHTML = `<div class="d-flex justify-content-start mb-4">
+            <div class="join_room text-muted">
+              No previous messages found
+            </div>
+          </div>`;
+
+      msg_body.appendChild(prev_msg);
+      return;
+    }
+    for (let i = 0; i < data.messages.length; i++) {
+      let newMsg = document.createElement("p");
+      newMsg.innerHTML = `<b>${data.messages[i].name}</b>: <span>${data.messages[i].msg}</span> <br>`;
+      nodes.push(newMsg);
+    }
+    // scroll
+    msg_body.scrollTop = msg_body.scrollHeight;
+    contacts_body.scrollTop = contacts_body.scrollHeight;
+  } else if (data.type == "msg") {
+    // when someone sends msg
+    let msg_body = document.getElementsByClassName("msg_card_body")[0];
+    let new_msg = document.createElement("span");
+    new_msg.innerHTML = `<div class="d-flex justify-content-start mb-4">
+    <div class="img_cont_msg">
+      <img
+        src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg"
+        class="rounded-circle user_img_msg"
+      />
+    </div>
+    <div class="msg_cotainer">
+      ${data.msg}
+      <span class="msg_time">${data.name}</span>
+      <!-- <span class="msg_time">8:40 AM, Today</span> -->
+    </div>
+  </div>`;
+    msg_body.appendChild(new_msg);
+    // scroll
+    msg_body.scrollTop = msg_body.scrollHeight;
+  } else if (data.type == "conn") {
+    // when some new visitor joins the chat
+    let li = document.createElement(`li`);
+    li.className = "activec";
+    li.id = data.name + "__";
+    li.innerHTML = `<div class="d-flex bd-highlight">
+          <div class="img_cont">
+            <img
+              src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg"
+              class="rounded-circle user_img"
+            />
+            <span class="online_icon"></span>
+          </div>
+          <div class="user_info">
+            <span>${data.name}</span>
+            <p>${data.name} is online</p>
+          </div> 
+        </div>`;
+    let contacts_section = document.getElementsByClassName("contacts")[0];
+    contacts_section.appendChild(li);
+
+    let msg_body = document.getElementsByClassName("msg_card_body")[0];
+    let conv_left = document.createElement("span");
+    conv_left.innerHTML = `<div class="d-flex justify-content-start mb-4">
+            <div class="text-success join_room">
+              ${data.name} joined conversation
+            </div>
+          </div>`;
+
+    msg_body.appendChild(conv_left);
+    // scroll
+    let contacts_body = document.getElementsByClassName("contacts_body")[0];
+    contacts_body.scrollTop = contacts_body.scrollHeight;
+    msg_body.scrollTop = msg_body.scrollHeight;
+  } else if (data.type == "disconn") {
+    let msg_body = document.getElementsByClassName("msg_card_body")[0];
+    let conv_left = document.createElement("span");
+    conv_left.innerHTML = `<div class="d-flex justify-content-start mb-4">
+            <div class="text-danger join_room">
+              ${data.name} left conversation
+            </div>
+          </div>`;
+    msg_body.appendChild(conv_left);
+    document.getElementById(data.name + "__").remove();
+    // scroll
+    msg_body.scrollTop = msg_body.scrollHeight;
+  }
+};
+
+window.onload = () => {
+  document.getElementsByClassName("type_msg")[0].focus();
+  document.getElementsByClassName(
+    "welcome_text"
+  )[0].innerText = `Welcome ${name}`;
+  // send message
+  document
+    .getElementsByClassName("send_btn")[0]
+    .addEventListener("click", sendMessge);
+  document
+    .getElementsByClassName("type_msg")[0]
+    .addEventListener("keydown", event => {
+      if (event.key == "Enter") sendMessge();
+    });
+
+  function sendMessge() {
+    let msg = document.getElementsByClassName("type_msg")[0].value;
+    if (!msg) return;
+
+    let msg_body = document.getElementsByClassName("msg_card_body")[0];
+    let your_msg = document.createElement("span");
+    your_msg.innerHTML = `<div class="d-flex justify-content-end mb-4">
+        <div class="msg_cotainer_send">
+          ${msg}
+         <!-- <span class="msg_time_send">8:55 AM, Today</span>-->
+        </div>
+        <div class="img_cont_msg">
+          <img
+            src="https://avatars.servers.getgo.com/emails/%7B0%7D/medium.jpg"
+            class="rounded-circle user_img_msg"
+          />
+        </div>
+      </div>`;
+    msg_body.appendChild(your_msg);
+
+    socket.send(JSON.stringify({ type: "msg", msg }));
+
+    document.getElementsByClassName("type_msg")[0].value = "";
+    document.getElementsByClassName("type_msg")[0].focus();
+    // scroll
+    msg_body.scrollTop = msg_body.scrollHeight;
+  }
+};

@@ -1,0 +1,96 @@
+
+$(document).ready(function() {
+  $("#action_menu_btn").click(function() {
+    $(".action_menu").toggle();
+  });
+});
+
+let name = prompt("What\ts your name?");
+while (!name) {
+  name = prompt("What\ts your name?");
+}
+
+let socket_url = "ws://localhost:3000";
+let socket = new WebSocket(socket_url);
+
+socket.onopen = () => {
+  if (name) socket.send(JSON.stringify({ type: "conn", name }));
+};
+
+socket.onmessage = event => {
+  let data = {};
+  try {
+    data = JSON.parse(event.data);
+  } catch (e) {
+    return;
+  }
+
+  console.log("Recieved:", data);
+
+  if (data.type == "allmsgs") {
+    // when user gets connected
+    let nodes = [];
+    let mainDiv = document.getElementById("main");
+
+    document.getElementById(
+      "main"
+    ).innerHTML = `<b style="color:green"> You joined the chat</b>`;
+
+    if (!data.messages.length) {
+      let main = document.getElementById("main");
+      let newElem = document.createElement("span");
+      newElem.innerHTML = ` <p style="color: navy;"> No previous messages</p>`;
+      main.appendChild(newElem);
+      return;
+    }
+    for (let i = 0; i < data.messages.length; i++) {
+      let newMsg = document.createElement("p");
+      newMsg.innerHTML = `<b>${data.messages[i].name}</b>: <span>${data.messages[i].msg}</span> <br>`;
+      nodes.push(newMsg);
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      mainDiv.appendChild(nodes[i]);
+    }
+  } else if (data.type == "msg") {
+    // when someone sends msg
+    let mainDiv = document.getElementById("main");
+    let newMsg = document.createElement("p");
+    newMsg.innerHTML = `<b>${data.name}</b>: <span>${data.msg}</span> <br>`;
+    mainDiv.appendChild(newMsg);
+  } else if (data.type == "conn") {
+    // when some new visitor joins the chat
+    let mainDiv = document.getElementById("main");
+    let newMsg = document.createElement("p");
+    newMsg.innerHTML = `<b style="color:green">${data.name} has joined </b><br>`;
+    mainDiv.appendChild(newMsg);
+  } else if (data.type == "disconn") {
+    let mainDiv = document.getElementById("main");
+    let newMsg = document.createElement("p");
+    newMsg.innerHTML = `<b style="color:red">${data.name} has left </b><br>`;
+    mainDiv.appendChild(newMsg);
+  }
+};
+
+window.onload = () => {
+  document.getElementById("msginput").focus();
+
+  // send message
+  document.getElementById("sendBtn").addEventListener("click", sendMessge);
+  document.getElementById("msginput").addEventListener("keydown", event => {
+    if (event.key == "Enter") sendMessge();
+  });
+
+  function sendMessge() {
+    let msg = document.getElementById("msginput").value;
+    if (!msg) return;
+
+    let mainDiv = document.getElementById("main");
+    let newMsg = document.createElement("p");
+    newMsg.innerHTML = `<p><b>You: </b> ${msg}</p>`;
+    mainDiv.appendChild(newMsg);
+    socket.send(JSON.stringify({ type: "msg", msg }));
+    document.getElementById("msginput").value = "";
+    document.getElementById("msginput").focus();
+  }
+};
