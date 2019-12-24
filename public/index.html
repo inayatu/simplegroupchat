@@ -870,7 +870,7 @@
         </div>
         <div id="contacts">
           <ul id="contacts_list">
-            <li class="contact active">
+            <!-- <li class="contact active">
               <div class="wrap">
                 <span class="contact-status online"></span>
                 <img src="http://emilcarlsson.se/assets/louislitt.png" alt="" />
@@ -879,7 +879,7 @@
                   <p class="preview">You just got LITT up, Mike.</p>
                 </div>
               </div>
-            </li>
+            </li> -->
           </ul>
         </div>
         <div id="bottom-bar">
@@ -905,7 +905,7 @@
         </div>
         <div class="messages">
           <ul id="message_section">
-            <li class="sent">
+            <!-- <li class="sent">
               <img src="http://emilcarlsson.se/assets/mikeross.png" alt="" />
               <p>
                 How the hell am I supposed to get a jury to believe you when I
@@ -921,7 +921,7 @@
                 When you're backed against the wall, break the god damn thing
                 down.
               </p>
-            </li>
+            </li> -->
           </ul>
         </div>
         <div class="message-input">
@@ -976,33 +976,6 @@
 
         $("#status-options").removeClass("active");
       });
-
-      function newMessage() {
-        message = $(".message-input input").val();
-        if ($.trim(message) == "") {
-          return false;
-        }
-        $(
-          '<li class="replies"><img src="http://emilcarlsson.se/assets/mikeross.png" alt="" /><p>' +
-            message +
-            "</p></li>"
-        ).appendTo($(".messages ul"));
-        $(".message-input input").val(null);
-        $(".contact.active .preview").html("<span>You: </span>" + message);
-        $(".messages").animate({ scrollTop: $(document).height() }, "fast");
-      }
-
-      $(".submit").click(function() {
-        newMessage();
-      });
-
-      $(window).on("keydown", function(e) {
-        if (e.which == 13) {
-          newMessage();
-          return false;
-        }
-      });
-      //# sourceURL=pen.js
     </script>
   </body>
 </html>

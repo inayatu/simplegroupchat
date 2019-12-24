@@ -16,11 +16,11 @@ module.exports = server => {
 
       if (data.type == "conn") {
         ws.name = data.name;
-        users.push(ws);
         console.log(`${data.name} connected`);
 
         // send back all the messages in chatroom to the connected user
         ws.send(JSON.stringify({ type: "allmsgs", messages, users }));
+        users.push(ws);
 
         // notifiy all the other connected users about new user
         wss.clients.forEach(client => {

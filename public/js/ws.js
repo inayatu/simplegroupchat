@@ -6,7 +6,7 @@ while (!name) {
 let socket_url = "ws://localhost:3000";
 let socket = new WebSocket(socket_url);
 
-let nodes = [];
+let prev_msgs = [];
 let contacts = [];
 let users = [];
 
@@ -21,8 +21,6 @@ socket.onmessage = event => {
   } catch (e) {
     return;
   }
-
-  console.log("Recieved:", data);
 
   if (data.type == "allmsgs") {
     // when user gets connected
@@ -79,8 +77,12 @@ socket.onmessage = event => {
           ${data.messages[i].msg}
         </p>
       </li>`;
-      nodes.push(newMsg);
+      prev_msgs.push(newMsg);
     }
+    for (let i = 0; i < prev_msgs.length; i++) {
+      msg_body.appendChild(prev_msgs[i]);
+    }
+    $(".messages").animate({ scrollTop: $(document).height() }, "fast");
   } else if (data.type == "msg") {
     // when someone sends msg
     let msg_body = document.getElementById("message_section");
@@ -92,6 +94,7 @@ socket.onmessage = event => {
       </p>
     </li>`;
     msg_body.appendChild(new_msg);
+    $(".messages").animate({ scrollTop: $(document).height() }, "fast");
   } else if (data.type == "conn") {
     // when some new visitor joins the chat
     let new_contact = document.createElement("span");
@@ -117,8 +120,8 @@ socket.onmessage = event => {
         ${data.name} joined conversation
       </p>
     </li>`;
-
     msg_body.appendChild(new_joined);
+    $(".messages").animate({ scrollTop: $(document).height() }, "fast");
   } else if (data.type == "disconn") {
     let msg_body = document.getElementById("message_section");
     let new_joined = document.createElement("span");
@@ -130,23 +133,14 @@ socket.onmessage = event => {
 
     msg_body.appendChild(new_joined);
     document.getElementById(data.name + "__").remove();
+    $(".messages").animate({ scrollTop: $(document).height() }, "fast");
+  }
 };
 
 window.onload = () => {
   document.getElementById("type_msg").focus();
-  
-  // send message
-  document
-    .getElementById("submit")
-    .addEventListener("click", sendMessge);
-  document
-    .getElementById("type_msg")
-    .addEventListener("keydown", event => {
-      if (event.key == "Enter") sendMessge();
-    });
-
   function sendMessge() {
-    let = message = $(".message-input input").val();
+    let message = $(".message-input input").val();
     if ($.trim(message) == "") {
       return false;
     }
@@ -157,30 +151,20 @@ window.onload = () => {
         "</p></li>"
     ).appendTo($(".messages ul"));
     $(".message-input input").val(null);
+    $(".message-input input").focus();
     $(".contact.active .preview").html("<span>You: </span>" + message);
+    socket.send(JSON.stringify({ type: "msg", msg: message }));
     $(".messages").animate({ scrollTop: $(document).height() }, "fast");
-
-    let msg_body = document.getElementsByClassName("msg_card_body")[0];
-    let your_msg = document.createElement("span");
-    your_msg.innerHTML = `<div class="d-flex justify-content-end mb-4">
-        <div class="msg_cotainer_send">
-          ${msg}
-         <!-- <span class="msg_time_send">8:55 AM, Today</span>-->
-        </div>
-        <div class="img_cont_msg">
-          <img
-            src="https://avatars.servers.getgo.com/emails/%7B0%7D/medium.jpg"
-            class="rounded-circle user_img_msg"
-          />
-        </div>
-      </div>`;
-    msg_body.appendChild(your_msg);
-
-    socket.send(JSON.stringify({ type: "msg", msg }));
-
-    document.getElementsByClassName("type_msg")[0].value = "";
-    document.getElementsByClassName("type_msg")[0].focus();
-    // scroll
-    msg_body.scrollTop = msg_body.scrollHeight;
   }
+
+  $(".submit").click(function() {
+    sendMessge();
+  });
+
+  $(window).on("keydown", function(e) {
+    if (e.which == 13) {
+      sendMessge();
+      return false;
+    }
+  });
 };
